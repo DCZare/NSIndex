@@ -1,2 +1,2 @@
-# NSIndex
+# NS Index
 Neurosurgery Bibliometrics Index
