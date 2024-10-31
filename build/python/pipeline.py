@@ -12,7 +12,7 @@ def pipeline():
     print('Loading NPI Registry')
     print('------------------')
 
-    from thin import thin
+    #from thin import thin
 
     #thin(npi_registry_path)
     print('NPI Thinning Skipped') #uncommented if above is commented
@@ -21,9 +21,10 @@ def pipeline():
     print('Calling Backend')
     print('------------------')
 
-    from backend import build
+    #from backend import build
+    from bulk_GEN import build
 
-    build()
+    #build()
 
     print('------------------')
     print('OpenAlex Data Compiled')

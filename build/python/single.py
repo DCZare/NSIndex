@@ -2,7 +2,8 @@ import csv
 
 
 def single():
-    input_csv_file_path = 'outputs/OA_data.csv'
+    #input_csv_file_path = 'outputs/OA_data.csv'
+    input_csv_file_path = 'data/works_data.csv'
     output_csv_file_path = 'outputs/single_works.csv'
 
     seen_titles = set()

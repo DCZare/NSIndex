@@ -7,7 +7,6 @@ def altmetrics():
     cwd = os.getcwd()
     print(cwd)
 
-    i = 1
     input_csv_file_path = os.path.join(cwd, 'outputs/doi_split_works.csv')
     output_csv_file_path = os.path.join(cwd, 'outputs/citations.csv')
 
@@ -26,31 +25,41 @@ def altmetrics():
 
     a = Altmetric()
     citations = []
-    for doi in dois:
+    batch_size = 1000
+    total_rows = len(dois)
+
+    all_fieldnames = set(fieldnames)  # Ensure all_fieldnames is a set initially
+
+    for index, doi in enumerate(dois, start=1):
         citation = a.doi(doi)
-        if citation is not None:
+        if citation:
             citations.append(citation)
-            print(f'{i} Found: {doi}')
+            print(f'{index} Found: {doi}')
         else:
-            print(f"{i}: No citation data found for DOI: {doi}")
-        i += 1
+            print(f"{index}: No citation data found for DOI: {doi}")
 
-    all_fieldnames = set(fieldnames)
-    for citation in citations:
-        all_fieldnames.update(citation.keys())
-    all_fieldnames = sorted(all_fieldnames)
+        if index % batch_size == 0 or index == total_rows:
+            for citation in citations:
+                all_fieldnames.update(citation.keys())  # Update set with new fields from citation data
+            
+            sorted_fieldnames = sorted(all_fieldnames)  # Sort once all updates are done
 
-    combined_rows = []
-    for original_row in original_rows:
-        doi = original_row.get('work_doi')
-        citation_data = next((c for c in citations if c.get('doi') == doi), {})
-        combined_row = {field: original_row.get(field, '') for field in all_fieldnames}
-        combined_row.update({field: citation_data.get(field, '') for field in citation_data})
-        combined_rows.append(combined_row)
+            combined_rows = []
+            for original_row in original_rows[index - batch_size:index]:
+                doi = original_row.get('work_doi')
+                citation_data = next((c for c in citations if c.get('doi') == doi), {})
+                combined_row = {field: original_row.get(field, '') for field in sorted_fieldnames}
+                combined_row.update({field: citation_data.get(field, '') for field in citation_data})
+                combined_rows.append(combined_row)
 
-    with open(output_csv_file_path, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=all_fieldnames)
-        writer.writeheader()
-        writer.writerows(combined_rows)
+            with open(output_csv_file_path, 'a', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=sorted_fieldnames)
+                if index <= batch_size:
+                    writer.writeheader()  
+                writer.writerows(combined_rows)
 
-    print(f"Combined citations have been written to {output_csv_file_path} in CSV format.")
+            print(f"Progress saved at {index}/{total_rows} DOIs.")
+
+            citations.clear()  
+
+    print(f"Final save completed. All citations are in {output_csv_file_path}.")
