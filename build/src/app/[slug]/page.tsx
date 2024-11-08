@@ -1,19 +1,11 @@
-import { use } from 'react';
-
 type PageProps = {
   params: {
     slug: string;
   };
 };
 
-export async function generateStaticParams() {
-  // Return an empty array if you don't need static generation
-  return [];
-}
-
-export default function DynamicPage({ params }: PageProps) {
-  // Ensure `params` is accessed synchronously in the client component
-  const slug = use(() => params.slug); // Ensure params is accessed correctly
+export default async function DynamicPage({ params }: PageProps) {
+  const slug = params.slug; // This should be awaited or fetched if needed
 
   return (
     <main className="flex min-h-screen items-center justify-center">
