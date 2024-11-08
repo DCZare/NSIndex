@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 import Link from 'next/link';
-import Search from "@/components/search/Search";
+import Search from "@/components/Search";
 
 type Work = {
   id: string;

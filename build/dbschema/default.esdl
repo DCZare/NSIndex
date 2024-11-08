@@ -1,8 +1,8 @@
 module default {
   type Work {
-    optional pmid: float64;
-    required journal: str;
-    required doi: str;
+    optional pmid: str;
+    optional journal: str;
+    optional doi: str;
     optional title: str;
     optional work_publication_date: str;
     optional abstract: str;
@@ -23,9 +23,9 @@ module default {
   }
 
   type Author {
-    required name: str;
     multi works := (SELECT Work FILTER Work.authors = Author);
     optional First: str;
+    optional Middle: str;  
     optional Last: str;
     optional Lifespan: str;
     optional Gender: str;
@@ -35,5 +35,6 @@ module default {
     optional Chair_Chief: str;
     optional Program_Director: str;
     optional Positions_Held: str;
+    optional ORCID: str;
   }
 }

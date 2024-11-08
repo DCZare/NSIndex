@@ -22,7 +22,7 @@ def pipeline():
     print('------------------')
 
     #from backend import build
-    from bulk_GEN import build
+    #from bulk_GEN import build
 
     #build()
 

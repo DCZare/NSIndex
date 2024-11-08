@@ -21,24 +21,27 @@ def build():
         return
 
     email = "davidzar@buffalo.edu"
-    author_results = []
     works_data = []
     endpoint = 'authors'
-    author_outpath = 'data/authors_data.csv'
     works_outpath = 'data/works_data.csv'
+    progress_file = 'data/progress.txt'
 
     os.makedirs('data', exist_ok=True)
-    pd.DataFrame(columns=['author_id', 'author_name', 'orcid', 'institution_id', 'institution_name'] + required_columns[2:]).to_csv(author_outpath, index=False)
     pd.DataFrame(columns=[
         'work_title', 'work_display_name', 'work_publication_year', 'work_publication_date', 'author_id',
-        'author_name', 'author_position', 'institution_id', 'institution_name', 'institution_country_code',
-        'work_id', 'work_doi', 'First', 'Last', 'Lifespan', 'Gender', 'Ethnicity', 'Graduation Year',
-        'Residency', 'Chair/Chief', 'Program Director', 'Positions Held'
+        'first_author', 'author_position', 'institution_id', 'institution_name', 'institution_country_code',
+        'work_id', 'work_doi', 'pmid', 'First', 'Last', 'Lifespan', 'Gender', 'Ethnicity', 'Graduation Year',
+        'Residency', 'Chair/Chief', 'Program Director', 'Positions Held', 'Middle', 'last_author'
     ]).to_csv(works_outpath, index=False)
 
     total_rows = len(df)
+    start_index = 0
+    if os.path.exists(progress_file):
+        with open(progress_file, 'r') as f:
+            start_index = int(f.read().strip())
 
-    for index, row in df.head(10000).iterrows():
+    for index in range(start_index, total_rows):
+        row = df.iloc[index]
         first_name = row['First']
         last_name = row['Last']
         filter_str = f'display_name.search:"{first_name} {last_name}"'
@@ -52,23 +55,10 @@ def build():
         for author in authors_page['results']:
             author_id = author['id']
             author_name = author['display_name']
-            orcid = author.get('orcid')
             institutions = author.get('institutions', [])
             institution_info = institutions[0] if institutions else {}
             institution_name = institution_info.get('display_name')
             institution_id = institution_info.get('id')
-
-            author_info = {
-                'author_id': author_id,
-                'author_name': author_name,
-                'orcid': orcid,
-                'institution_id': institution_id,
-                'institution_name': institution_name,
-            }
-            for col in required_columns[2:]:
-                author_info[col] = row[col]
-
-            author_results.append(author_info)
 
             works_endpoint = 'works'
             works_filter = f'authorships.author.id:"{author_id}"'
@@ -89,44 +79,60 @@ def build():
                 results = page_with_results.get('results', [])
 
                 for work in results:
-                    for authorship in work.get('authorships', []):
+                    pmid = work.get('id')
+                    first_author = None
+                    middle_authors = []
+                    last_author = None
+
+                    for i, authorship in enumerate(work.get('authorships', [])):
                         author_data = authorship.get('author', {})
                         author_position = authorship.get('author_position')
                         institution_info = authorship.get('institutions', [{}])[0] if authorship.get('institutions') else {}
 
-                        works_data.append({
-                            'work_title': work.get('title'),
-                            'work_display_name': work.get('display_name'),
-                            'work_publication_year': work.get('publication_year'),
-                            'work_publication_date': work.get('publication_date'),
-                            'author_id': author_data.get('id'),
-                            'author_name': author_data.get('display_name'),
-                            'author_position': author_position,
-                            'institution_id': institution_info.get('id'),
-                            'institution_name': institution_info.get('display_name'),
-                            'institution_country_code': institution_info.get('country_code'),
-                            'work_id': work.get('id'),
-                            'work_doi': work.get('doi'),
-                            'First': first_name,
-                            'Last': last_name,
-                            'Lifespan': row['Lifespan'],
-                            'Gender': row['Gender'],
-                            'Ethnicity': row['Ethnicity'],
-                            'Graduation Year': row['Graduation Year'],
-                            'Residency': row['Residency'],
-                            'Chair/Chief': row['Chair/Chief'],
-                            'Program Director': row['Program Director'],
-                            'Positions Held': row['Positions Held'],
-                        })
+                        if i == 0:
+                            first_author = author_data.get('display_name')
+                        elif i == len(work['authorships']) - 1:
+                            last_author = author_data.get('display_name')
+                        else:
+                            middle_authors.append(author_data.get('display_name'))
+
+                    works_data.append({
+                        'work_title': work.get('title'),
+                        'work_display_name': work.get('display_name'),
+                        'work_publication_year': work.get('publication_year'),
+                        'work_publication_date': work.get('publication_date'),
+                        'author_id': author_id,
+                        'first_author': first_author,
+                        'author_position': author_position,
+                        'institution_id': institution_info.get('id'),
+                        'institution_name': institution_info.get('display_name'),
+                        'institution_country_code': institution_info.get('country_code'),
+                        'work_id': work.get('id'),
+                        'work_doi': work.get('doi'),
+                        'pmid': pmid,
+                        'First': first_name,
+                        'Last': last_name,
+                        'Lifespan': row['Lifespan'],
+                        'Gender': row['Gender'],
+                        'Ethnicity': row['Ethnicity'],
+                        'Graduation Year': row['Graduation Year'],
+                        'Residency': row['Residency'],
+                        'Chair/Chief': row['Chair/Chief'],
+                        'Program Director': row['Program Director'],
+                        'Positions Held': row['Positions Held'],
+                        'Middle': ', '.join(middle_authors),  # Ensuring 'Middle' column is populated
+                        'last_author': last_author,
+                    })
 
                 cursor = page_with_results['meta'].get('next_cursor', None)
 
-        if (index + 1) % 100 == 0:
-            pd.DataFrame(author_results).to_csv(author_outpath, mode='a', header=False, index=False)
+        if (index + 1) % 10 == 0:
             pd.DataFrame(works_data).to_csv(works_outpath, mode='a', header=False, index=False)
-            author_results.clear()
             works_data.clear()
             print(f'Saved progress at {index + 1} records.')
+
+            with open(progress_file, 'w') as f:
+                f.write(str(index + 1))
 
         progress = (index + 1) / total_rows * 100
         remaining = total_rows - (index + 1)
@@ -134,10 +140,12 @@ def build():
         print(f"Progress: {progress:.2f}% complete. ({index + 1}/{total_rows} done, {remaining} remaining)")
         print('-----------------------------------')
 
-    if author_results:
-        pd.DataFrame(author_results).to_csv(author_outpath, mode='a', header=False, index=False)
     if works_data:
         pd.DataFrame(works_data).to_csv(works_outpath, mode='a', header=False, index=False)
+
+    with open(progress_file, 'w') as f:
+        f.write(str(total_rows))
+
     print(f'Final save completed.')
 
 if __name__ == "__main__":
