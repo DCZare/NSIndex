@@ -1,6 +1,19 @@
-export default async function DynamicPage({ params }: { params: { slug: string } }) {
-  // Simulating async behavior by ensuring `params` is accessed asynchronously
-  const slug = await Promise.resolve(params.slug);
+import { use } from 'react';
+
+type PageProps = {
+  params: {
+    slug: string;
+  };
+};
+
+export async function generateStaticParams() {
+  // Return an empty array if you don't need static generation
+  return [];
+}
+
+export default function DynamicPage({ params }: PageProps) {
+  // Ensure `params` is accessed synchronously in the client component
+  const slug = use(() => params.slug); // Ensure params is accessed correctly
 
   return (
     <main className="flex min-h-screen items-center justify-center">
