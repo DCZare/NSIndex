@@ -1,11 +1,11 @@
 type PageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export default async function DynamicPage({ params }: PageProps) {
-  const slug = params.slug; // This should be awaited or fetched if needed
+  const { slug } = await params; // Awaiting the params to handle the Promise type
 
   return (
     <main className="flex min-h-screen items-center justify-center">
